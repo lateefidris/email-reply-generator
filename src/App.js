@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import "./App.css";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import Inquiries from "./Inquiries";
+import { supabase } from "./supabaseClient";
 
-function App() {
+function Home() {
+  const navigate = useNavigate();
   //
   // 1. MASTER LISTS (what staff can pick in the form)
   //
@@ -145,8 +149,8 @@ function App() {
   },
   "Wilbur Wright": {
     Credit: {
-      name: "Irene Aleman",
-      email: "ialeman3@ccc.edu",
+      name: "Jesus Guzman",
+      email: "jguzman389@ccc.edu",
     },
     "Non-Credit": {
       name: "Adam Kashuba",
@@ -174,6 +178,8 @@ function App() {
   const [program, setProgram] = useState(programOptions[0] || "");
   const [creditType, setCreditType] = useState("Credit");
   const [campus, setCampus] = useState(campusOptions[0] || "");
+  const [studentContactEmail, setStudentContactEmail] = useState("");
+  const [studentMessage, setStudentMessage] = useState("");
 
   //
   // 4. GENERATED EMAIL STATE
@@ -181,6 +187,7 @@ function App() {
   const [studentEmail, setStudentEmail] = useState("");
   const [advisorEmail, setAdvisorEmail] = useState("");
   const [generated, setGenerated] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null); // { text, type: 'success'|'error' }
 
   //
   // 5. HELPERS
@@ -218,9 +225,9 @@ Dear ${safeName},
 
 Thank you for your interest in the CCC Center for Information Technologies! We're excited to help you explore technology programs at the City Colleges of Chicago.
 
-Unfortunately we are not offering AI/Machine Learning credit courses at the moment.
+Unfortunately we are not offering AI/Machine Learning credit courses until Fall 2026.
 
-However, we will have a Continuing Education Program focused on Machine Learning beginning in the Spring semester. If you are interested feel free to reach out — we're here to help!
+However, starting in March, we’re launching a 14-month Continuing Education Program on Machine Learning in collaboration with AWS. The program will be led by industry experts and designed to help you build practical skills. If you are interested feel free to reach out — we're here to help!
 
 Best regards,
 Tech@CCC.edu Team
@@ -234,7 +241,7 @@ Dear ${safeName},
 
 Thank you for your interest in the CCC Center for Information Technologies! We're excited to help you explore technology programs at the City Colleges of Chicago.
 
-We will have a Continuing Education Program focused on Machine Learning beginning in the Spring semester. If you are interested feel free to reach out — we're here to help!
+Starting in March, we will be launching a 14-month Continuing Education Program on Machine Learning in collaboration with AWS. The program will be led by industry experts and designed to help you build practical skills. If you are interested feel free to reach out — we're here to help!
 
 Best regards,
 Tech@CCC.edu Team
@@ -283,7 +290,7 @@ Dear ${safeName},
 
 Thank you for your interest in the CCC Center for Information Technologies! We're excited to help you explore technology programs at the City Colleges of Chicago.
 
-To best support you, we've forwarded your information to ${safeCampus}. A representative from that campus will be reaching out to you shortly.
+To best support you, we've forwarded your information to ${safeCampus} College. A representative from that campus will be reaching out to you shortly.
 
 In the meantime, feel free to explore our programs here:
 Academic Catalog:  https://catalog.ccc.edu/programs/#filter=.filter_3
@@ -382,7 +389,7 @@ CoET Team
   //
   // 7. GENERATE HANDLER
   //
-  function handleGenerate(e) {
+  async function handleGenerate(e) {
     e.preventDefault();
 
     const safeName = studentName.trim() || "Student";
@@ -400,6 +407,39 @@ CoET Team
       offeredHere,
     });
 
+    // Persist the inquiry to the DB (or localStorage fallback)
+    const entry = {
+      name: safeName || "Student",
+      email: studentContactEmail || "",
+      message: studentMessage || "",
+      program: safeProgram || "",
+      campus: safeCampus || "",
+      credit_type: safeCreditType || "",
+      created_at: new Date().toISOString(),
+    };
+
+    let savedSuccessfully = false;
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from("inquiries").insert([entry]).select();
+        if (error) {
+          console.error("Failed to save inquiry", error);
+          savedSuccessfully = false;
+        } else {
+          savedSuccessfully = true;
+        }
+      } catch (err) {
+        console.error("Error saving inquiry", err);
+        savedSuccessfully = false;
+      }
+    } else {
+      const STORAGE_KEY = "inquiries:v1";
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const newList = [entry, ...existing];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+      savedSuccessfully = true;
+    }
+
     const advisorTemplate = buildAdvisorEmail({
       safeName,
       safeProgram,
@@ -411,6 +451,21 @@ CoET Team
     setStudentEmail(studentTemplate);
     setAdvisorEmail(advisorTemplate);
     setGenerated(true);
+
+    // Show a temporary save confirmation
+    if (savedSuccessfully) {
+      setSaveMessage({ text: "Inquiry saved", type: "success" });
+      // Clear the form inputs now that we've saved
+      setStudentName("");
+      setProgram(programOptions[0] || "");
+      setCreditType("Credit");
+      setCampus(campusOptions[0] || "");
+      setStudentContactEmail("");
+      setStudentMessage("");
+    } else {
+      setSaveMessage({ text: "Failed to save inquiry (see console)", type: "error" });
+    }
+    setTimeout(() => setSaveMessage(null), 3000);
   }
 
   //
@@ -427,13 +482,37 @@ CoET Team
     <div className="app-shell">
       <header className="header">
         <div className="header-top">
-          <h1 className="title">Email Reply Generator</h1>
-        <p className="tagline">
-            City College of Chicago · CoET → Draft response in 1 click
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div>
+              <h1 className="title">Email Reply Generator</h1>
+              <p className="tagline">City College of Chicago · CoET</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="generate-btn" onClick={() => navigate('/')}>Generator</button>
+              <button type="button" className="generate-btn" onClick={() => navigate('/inquiries')}>Inquiries</button>
+            </div>
+          </div>
         </div>
         <div className="date-pill">{getTodayString()}</div>
       </header>
+
+      {saveMessage && (
+        <div
+          style={{
+            margin: "12px auto",
+            maxWidth: 980,
+            padding: "10px 14px",
+            borderRadius: 6,
+            background: saveMessage.type === "success" ? "#e6ffed" : "#ffe6e6",
+            color: saveMessage.type === "success" ? "#1a7f37" : "#a11d1d",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            textAlign: "center",
+          }}
+        >
+          {saveMessage.text}
+        </div>
+      )}
 
       <main className="main-grid">
         {/* LEFT: FORM */}
@@ -451,6 +530,20 @@ CoET Team
                 placeholder="e.g. Jordan Smith"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
+              />
+            </div>
+
+            {/* Student Email */}
+            <div className="form-field">
+              <label className="label" htmlFor="studentContactEmail">
+                Student Email
+              </label>
+              <input
+                id="studentContactEmail"
+                className="input"
+                placeholder="student@example.edu"
+                value={studentContactEmail}
+                onChange={(e) => setStudentContactEmail(e.target.value)}
               />
             </div>
 
@@ -518,6 +611,17 @@ CoET Team
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Message */}
+            <div className="form-field">
+              <label className="label">Message (optional)</label>
+              <textarea
+                className="input"
+                placeholder="Any notes from the student"
+                value={studentMessage}
+                onChange={(e) => setStudentMessage(e.target.value)}
+              />
             </div>
 
             <button type="submit" className="generate-btn">
@@ -590,4 +694,13 @@ CoET Team
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/inquiries" element={<Inquiries />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

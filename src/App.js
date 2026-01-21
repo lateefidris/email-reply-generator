@@ -421,7 +421,7 @@ CoET Team
     let savedSuccessfully = false;
     if (supabase) {
       try {
-        const { data, error } = await supabase.from("inquiries").insert([entry]).select();
+        const { error } = await supabase.from("inquiries").insert([entry]).select();
         if (error) {
           console.error("Failed to save inquiry", error);
           savedSuccessfully = false;

@@ -107,9 +107,10 @@ export default function Inquiries() {
     }
   }
 
-  function handleFilterChange(e) {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  }
+ // function handleFilterChange(e) {
+//   setFilters({ ...filters, [e.target.name]: e.target.value });
+// }
+
 
   function summarizeByCampusAndProgram(items) {
     const out = {};

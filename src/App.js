@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Inquiries from "./Inquiries";
+import LoginPage from "./LoginPage";
 import { supabase } from "./supabaseClient";
 
-function Home() {
+function Home({ onLogout }) {
   const navigate = useNavigate();
   //
   // 1. MASTER LISTS (what staff can pick in the form)
@@ -689,17 +690,44 @@ CoET Team
         <p className="footnote">
           Built by Kennedy-King College · Tech Launchpad
         </p>
+        <button onClick={onLogout} className="logout-button">
+          Logout
+        </button>
       </footer>
     </div>
   );
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user was previously authenticated
+    const authStatus = localStorage.getItem("isAuthenticated");
+    if (authStatus === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem("isAuthenticated", "true");
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("isAuthenticated");
+  };
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/inquiries" element={<Inquiries />} />
+        <Route path="/" element={<Home onLogout={handleLogout} />} />
+        <Route path="/inquiries" element={<Inquiries onLogout={handleLogout} />} />
       </Routes>
     </BrowserRouter>
   );

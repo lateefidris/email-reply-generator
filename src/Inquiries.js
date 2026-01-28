@@ -28,7 +28,7 @@ const campusOptions = [
 
 const creditOptions = ["Credit", "Non-Credit"];
 
-export default function Inquiries() {
+export default function Inquiries({ onLogout }) {
   const navigate = useNavigate();
   const [list, setList] = useState([]);
   const [filters, setFilters] = useState({ program: "", campus: "", creditType: "", q: "" });
@@ -238,6 +238,12 @@ export default function Inquiries() {
 
     return (
       <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h1 style={{ margin: 0 }}>Inquiries List</h1>
+          <button onClick={onLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
         <div className="card" style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <div>

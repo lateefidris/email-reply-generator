@@ -262,6 +262,7 @@
   border-top: 1px solid rgba(255,255,255,0.08);
   padding-top: 1rem;
   text-align: center;
+  position: relative;
 }
 
 .footnote {
@@ -269,3 +270,27 @@
   color: #475569;
   line-height: 1.4;
 }
+
+.logout-button {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.logout-button:hover {
+  background: #dc2626;
+}
+
+.logout-button:active {
+  transform: scale(0.98);
+}
+
